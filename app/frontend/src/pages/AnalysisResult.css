@@ -1,0 +1,59 @@
+.result-page {
+  min-height: calc(100vh - 70px);
+  padding: 60px 8%;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.result-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.result-title {
+  margin: 0;
+  text-align: center;
+  font-size: 42px;
+}
+
+.result-summary {
+  margin-top: 35px;
+  padding: 30px;
+  border-radius: 18px;
+  background: #1e293b;
+  text-align: center;
+}
+
+.result-status {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.result-confidence {
+  color: #cbd5e1;
+  font-size: 18px;
+}
+
+.result-evidence {
+  margin-top: 25px;
+  padding: 30px;
+  border-radius: 18px;
+  background: #1e293b;
+}
+
+.result-evidence h2 {
+  margin-top: 0;
+}
+
+.result-evidence-item {
+  margin-top: 15px;
+  padding: 18px;
+  border-radius: 12px;
+  background: #182338;
+  color: #cbd5e1;
+}
+
+.result-evidence-item strong {
+  color: #f8fafc;
+}

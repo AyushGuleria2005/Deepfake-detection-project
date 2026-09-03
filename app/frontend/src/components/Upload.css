@@ -1,0 +1,129 @@
+.drop-zone {
+  width: 100%;
+  min-height: 320px;
+  padding: 45px 30px;
+  border: 2px dashed #64748b;
+  border-radius: 24px;
+  background: #182338;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.drop-zone:hover {
+  border-color: #94a3b8;
+  background: #1c2940;
+  transform: translateY(-2px);
+}
+
+.drop-zone.dragging {
+  border-color: #e2e8f0;
+  background: #24324a;
+  transform: scale(1.01);
+}
+
+.upload-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #263750;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 22px;
+}
+
+.drop-zone h2 {
+  margin: 0 0 10px;
+  font-size: 25px;
+  color: #f8fafc;
+}
+
+.drop-description {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 16px;
+}
+
+.drop-or {
+  margin: 14px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.browse-button {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.browse-button:hover {
+  transform: translateY(-1px);
+}
+
+.supported-files {
+  margin: 18px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.file-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.file-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: #263750;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin-bottom: 18px;
+}
+
+.file-selected p {
+  max-width: 500px;
+  margin: 0 0 22px;
+  color: #cbd5e1;
+  word-break: break-all;
+}
+
+.change-button {
+  padding: 10px 22px;
+  border: 1px solid #475569;
+  border-radius: 9px;
+  background: transparent;
+  color: #f8fafc;
+  cursor: pointer;
+}
+.file-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.analyze-file-button {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
+  cursor: pointer;
+}

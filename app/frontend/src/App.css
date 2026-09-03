@@ -1,0 +1,10 @@
+.app {
+  min-height: calc(100vh - 70px);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+}

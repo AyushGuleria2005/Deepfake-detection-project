@@ -1,0 +1,44 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Datasets
+data/raw/
+data/Raw/
+data/processed/
+
+# Model checkpoints / weights
+outputs/checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# Generated experiment data
+research/experiments/
+
+# Generated outputs
+outputs/results/
+outputs/plots/
+
+# Node.js
+node_modules/
+
+# Uploaded files from the app
+uploads/
+
+# Logs
+*.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/

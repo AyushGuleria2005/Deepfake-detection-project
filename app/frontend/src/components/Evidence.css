@@ -1,0 +1,56 @@
+.evidence {
+  width: 100%;
+}
+
+.evidence-title {
+  margin: 0 0 20px;
+  font-size: 24px;
+}
+
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.evidence-card {
+  padding: 20px;
+  border-radius: 14px;
+  background: #182338;
+  border: 1px solid #334155;
+}
+
+.evidence-card h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+
+.evidence-card p {
+  margin: 0;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.evidence-explanation {
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: 14px;
+  background: #182338;
+  border: 1px solid #334155;
+}
+
+.evidence-explanation h3 {
+  margin: 0 0 10px;
+}
+
+.evidence-explanation p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+@media (max-width: 800px) {
+  .evidence-grid {
+    grid-template-columns: 1fr;
+  }
+}
