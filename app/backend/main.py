@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 
 import os
 import shutil
@@ -8,14 +9,11 @@ import torch
 import torch.nn as nn
 import cv2
 import numpy as np
-import librosa
 
 from PIL import Image
 from torchvision import transforms
 
 from models.resnet_baseline import ResNetBaseline
-from models.audio_cnn import AudioCNN
-from models.fusion_baseline import FusionBaseline
 
 
 # ============================================================
@@ -25,6 +23,14 @@ from models.fusion_baseline import FusionBaseline
 app = FastAPI(
     title="Deepfake Detection & Learning System",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -60,19 +66,6 @@ BILSTM_ATTENTION_CHECKPOINT = os.path.join(
     "outputs",
     "checkpoints",
     "temporal_bilstm_attention_best.pth"
-)
-
-AUDIO_CHECKPOINT = os.path.join(
-    BASE_DIR,
-    "outputs",
-    "checkpoints",
-    "audio_cnn_best.pth"
-)
-FUSION_CHECKPOINT = os.path.join(
-    BASE_DIR,
-    "outputs",
-    "checkpoints",
-    "fusion_best.pth"
 )
 
 os.makedirs(
@@ -451,142 +444,6 @@ if isinstance(
 
 
 # ============================================================
-# AUDIO CNN
-# ============================================================
-
-print()
-print("=" * 60)
-print("LOADING AUDIO CNN")
-print("=" * 60)
-
-audio_model = AudioCNN().to(device)
-
-audio_checkpoint = torch.load(
-    AUDIO_CHECKPOINT,
-    map_location=device
-)
-
-if (
-    isinstance(audio_checkpoint, dict)
-    and "model_state_dict" in audio_checkpoint
-):
-
-    audio_state_dict = (
-        audio_checkpoint["model_state_dict"]
-    )
-
-elif (
-    isinstance(audio_checkpoint, dict)
-    and "state_dict" in audio_checkpoint
-):
-
-    audio_state_dict = (
-        audio_checkpoint["state_dict"]
-    )
-
-else:
-
-    audio_state_dict = audio_checkpoint
-
-
-audio_model.load_state_dict(
-    audio_state_dict
-)
-
-audio_model.eval()
-
-print(
-    "Audio CNN loaded successfully."
-)
-
-if isinstance(
-    audio_checkpoint,
-    dict
-):
-
-    if "epoch" in audio_checkpoint:
-
-        print(
-            "Best Epoch:",
-            audio_checkpoint["epoch"]
-        )
-
-    if "val_auc" in audio_checkpoint:
-
-        print(
-            "Validation ROC-AUC:",
-            f"{audio_checkpoint['val_auc']:.4f}"
-        )
-        # ============================================================
-# FUSION MODEL
-# ============================================================
-
-print()
-print("=" * 60)
-print("LOADING FUSION MODEL")
-print("=" * 60)
-
-fusion_model = FusionBaseline().to(device)
-
-fusion_checkpoint = torch.load(
-    FUSION_CHECKPOINT,
-    map_location=device
-)
-
-if (
-    isinstance(fusion_checkpoint, dict)
-    and "model_state_dict" in fusion_checkpoint
-):
-
-    fusion_state_dict = (
-        fusion_checkpoint["model_state_dict"]
-    )
-
-elif (
-    isinstance(fusion_checkpoint, dict)
-    and "state_dict" in fusion_checkpoint
-):
-
-    fusion_state_dict = (
-        fusion_checkpoint["state_dict"]
-    )
-
-else:
-
-    fusion_state_dict = fusion_checkpoint
-
-
-fusion_model.load_state_dict(
-    fusion_state_dict
-)
-
-fusion_model.eval()
-
-print(
-    "Fusion model loaded successfully."
-)
-
-if isinstance(
-    fusion_checkpoint,
-    dict
-):
-
-    if "epoch" in fusion_checkpoint:
-
-        print(
-            "Best Epoch:",
-            fusion_checkpoint["epoch"]
-        )
-
-    if "val_auc" in fusion_checkpoint:
-
-        print(
-            "Validation ROC-AUC:",
-            f"{fusion_checkpoint['val_auc']:.4f}"
-        )
-
-
-# ============================================================
 # ROOT
 # ============================================================
 
@@ -626,12 +483,6 @@ def health():
             "loaded",
 
         "bilstm_attention":
-            "loaded",
-
-        "audio_model":
-            "loaded",
-            
-        "fusion_model":
             "loaded"    
 
     }
@@ -888,133 +739,39 @@ async def analyze_media(
                 )
 
         # ====================================================
-        # AUDIO ANALYSIS
+        # DECISION & EVIDENCE (VISUAL + TEMPORAL)
         # ====================================================
 
-        wav_path = os.path.join(
-            UPLOAD_DIR,
-            file.filename + "_audio.wav"
-        )
-
-        try:
-
-            extract_audio_from_video(
-                file_path,
-                wav_path
-            )
-
-            audio_feature = (
-                prepare_audio_feature(
-                    wav_path
-                )
-            )
-
-            audio_feature = (
-                audio_feature.to(device)
-            )
-
-            with torch.no_grad():
-
-                audio_logit = audio_model(
-                    audio_feature
-                )
-
-                audio_probability = (
-                    torch.sigmoid(
-                        audio_logit
-                    ).item()
-                )
-
-        finally:
-
-            if os.path.exists(wav_path):
-
-                os.remove(wav_path)
-
-        # ====================================================
-        # MULTIMODAL FUSION
-        # ====================================================
-
-        visual_tensor = torch.tensor(
-            [[visual_probability]],
-            dtype=torch.float32,
-            device=device
-        )
-
-        audio_tensor = torch.tensor(
-            [[audio_probability]],
-            dtype=torch.float32,
-            device=device
-        )
-
-        with torch.no_grad():
-
-            fusion_logit = fusion_model(
-                visual_tensor,
-                audio_tensor
-            )
-
-            fusion_probability = (
-                torch.sigmoid(
-                    fusion_logit
-                ).item()
-            )
-
-        # ====================================================
-        # EVIDENCE GENERATION
-        # ====================================================
-
-        if (
-            visual_probability >= 0.5
-            and audio_probability >= 0.5
-        ):
-
-            evidence_type = (
-                "cross-modal agreement"
-            )
-
-            explanation = (
-                "Both visual and audio "
-                "analysis indicate manipulation."
-            )
-
-        elif (
-            visual_probability < 0.5
-            and audio_probability < 0.5
-        ):
-
-            evidence_type = (
-                "cross-modal real"
-            )
-
-            explanation = (
-                "Both visual and audio "
-                "analysis are below the "
-                "manipulation threshold."
-            )
-
-        elif audio_probability >= 0.5:
-
-            evidence_type = (
-                "audio-dominant"
-            )
-
-            explanation = (
-                "Audio analysis indicates "
-                "manipulation while visual "
-                "analysis is below threshold."
-            )
-
+        if temporal_probability is not None:
+            final_probability = 0.5 * visual_probability + 0.5 * temporal_probability
         else:
+            final_probability = visual_probability
 
-            evidence_type = (
-                "visual-dominant"
-            )
-
+        if final_probability >= 0.5:
+            if (
+                temporal_probability is not None
+                and visual_probability >= 0.5
+                and temporal_probability >= 0.5
+            ):
+                evidence_type = "visual-temporal agreement"
+                explanation = (
+                    "Both frame-level visual analysis and temporal sequence dynamics "
+                    "indicate deepfake manipulation."
+                )
+            elif visual_probability >= 0.5:
+                evidence_type = "spatial-visual detected"
+                explanation = (
+                    "Spatial facial analysis indicates manipulation artifacts in video frames."
+                )
+            else:
+                evidence_type = "temporal-inconsistency detected"
+                explanation = (
+                    "Temporal sequence analysis detected inconsistencies across consecutive frames."
+                )
+        else:
+            evidence_type = "authentic-consistent"
             explanation = (
-                "Visual analysis indicates "
-                "manipulation while audio "
-                "analysis is below threshold."
+                "Both frame visual features and temporal sequences appear consistent with authentic media."
             )
 
         # ====================================================
@@ -1023,13 +780,13 @@ async def analyze_media(
 
         prediction = (
             "FAKE"
-            if fusion_probability >= 0.5
+            if final_probability >= 0.5
             else "REAL"
         )
 
         confidence = max(
-            fusion_probability,
-            1.0 - fusion_probability
+            final_probability,
+            1.0 - final_probability
         )
 
         # ====================================================
@@ -1103,43 +860,6 @@ async def analyze_media(
                     )
                     if bilstm_probability is not None
                     else None
-                )
-
-            },
-
-            "audio": {
-
-                "fake_probability": round(
-                    audio_probability,
-                    4
-                ),
-
-                "real_probability": round(
-                    1.0 - audio_probability,
-                    4
-                ),
-
-                "sample_rate": 16000,
-
-                "channels": 1,
-
-                "feature_shape": [
-                    64,
-                    512
-                ]
-
-            },
-
-            "fusion": {
-
-                "fake_probability": round(
-                    fusion_probability,
-                    4
-                ),
-
-                "real_probability": round(
-                    1.0 - fusion_probability,
-                    4
                 )
 
             },
@@ -1937,361 +1657,3 @@ async def predict_video(
             str(device)
 
     }
-
-
-# ============================================================
-# AUDIO FUNCTIONS
-# ============================================================
-
-def extract_audio_from_video(
-    video_path,
-    wav_path
-):
-
-    command = [
-
-        "ffmpeg",
-
-        "-y",
-
-        "-i",
-        video_path,
-
-        "-vn",
-
-        "-ac",
-        "1",
-
-        "-ar",
-        "16000",
-
-        "-f",
-        "wav",
-
-        wav_path
-
-    ]
-
-
-    result = subprocess.run(
-
-        command,
-
-        stdout=subprocess.PIPE,
-
-        stderr=subprocess.PIPE
-
-    )
-
-
-    if result.returncode != 0:
-
-        raise RuntimeError(
-
-            result.stderr.decode(
-                errors="ignore"
-            )
-
-        )
-
-
-# ============================================================
-# AUDIO FEATURE PREPARATION
-# ============================================================
-
-def prepare_audio_feature(
-    wav_path
-):
-
-    waveform, sample_rate = librosa.load(
-
-        wav_path,
-
-        sr=16000,
-
-        mono=True
-
-    )
-
-
-    # --------------------------------------------------------
-    # Log-Mel Spectrogram
-    # --------------------------------------------------------
-
-    mel = librosa.feature.melspectrogram(
-
-        y=waveform,
-
-        sr=sample_rate,
-
-        n_mels=64
-
-    )
-
-
-    log_mel = librosa.power_to_db(
-
-        mel,
-
-        ref=np.max
-
-    )
-
-
-    # --------------------------------------------------------
-    # Exactly 512 time frames
-    # --------------------------------------------------------
-
-    target_frames = 512
-
-
-    if log_mel.shape[1] < target_frames:
-
-        padding = (
-
-            target_frames
-            - log_mel.shape[1]
-
-        )
-
-
-        log_mel = np.pad(
-
-            log_mel,
-
-            (
-                (0, 0),
-                (0, padding)
-            ),
-
-            mode="constant"
-
-        )
-
-    else:
-
-        log_mel = (
-
-            log_mel[
-                :,
-                :target_frames
-            ]
-
-        )
-
-
-    # --------------------------------------------------------
-    # Tensor
-    # [1, 1, 64, 512]
-    # --------------------------------------------------------
-
-    feature = torch.tensor(
-
-        log_mel,
-
-        dtype=torch.float32
-
-    )
-
-
-    feature = feature.unsqueeze(
-        0
-    )
-
-    feature = feature.unsqueeze(
-        0
-    )
-
-
-    return feature
-
-
-# ============================================================
-# AUDIO PREDICTION
-# ============================================================
-
-@app.post("/predict-audio")
-async def predict_audio(
-    file: UploadFile = File(...)
-):
-
-    input_path = os.path.join(
-
-        UPLOAD_DIR,
-
-        file.filename
-
-    )
-
-
-    with open(
-
-        input_path,
-
-        "wb"
-
-    ) as buffer:
-
-        shutil.copyfileobj(
-
-            file.file,
-
-            buffer
-
-        )
-
-
-    wav_path = os.path.join(
-
-        UPLOAD_DIR,
-
-        file.filename
-        + "_audio.wav"
-
-    )
-
-
-    try:
-
-        # ----------------------------------------------------
-        # Extract audio
-        # ----------------------------------------------------
-
-        extract_audio_from_video(
-
-            input_path,
-
-            wav_path
-
-        )
-
-
-        # ----------------------------------------------------
-        # Prepare log-mel
-        # ----------------------------------------------------
-
-        audio_feature = (
-
-            prepare_audio_feature(
-
-                wav_path
-
-            )
-
-        )
-
-
-        audio_feature = (
-
-            audio_feature.to(device)
-
-        )
-
-
-        # ----------------------------------------------------
-        # Audio CNN
-        # ----------------------------------------------------
-
-        with torch.no_grad():
-
-            audio_logit = (
-
-                audio_model(
-
-                    audio_feature
-
-                )
-
-            )
-
-
-            fake_probability = (
-
-                torch.sigmoid(
-
-                    audio_logit
-
-                ).item()
-
-            )
-
-
-        # ----------------------------------------------------
-        # Prediction
-        # ----------------------------------------------------
-
-        prediction = (
-
-            "FAKE"
-
-            if fake_probability >= 0.5
-
-            else "REAL"
-
-        )
-
-
-        return {
-
-            "success":
-                True,
-
-            "prediction":
-                prediction,
-
-            "fake_probability":
-                round(
-                    fake_probability,
-                    4
-                ),
-
-            "real_probability":
-                round(
-                    1 - fake_probability,
-                    4
-                ),
-
-            "audio": {
-
-                "sample_rate":
-                    16000,
-
-                "channels":
-                    1,
-
-                "feature_shape":
-                    [
-                        64,
-                        512
-                    ]
-
-            },
-
-            "device":
-                str(device)
-
-        }
-
-
-    except Exception as e:
-
-        return {
-
-            "success":
-                False,
-
-            "error":
-                str(e)
-
-        }
-
-
-    finally:
-
-        if os.path.exists(
-            wav_path
-        ):
-
-            os.remove(
-                wav_path
-            )

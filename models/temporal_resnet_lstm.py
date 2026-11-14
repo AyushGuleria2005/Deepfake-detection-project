@@ -10,7 +10,8 @@ class TemporalResNetLSTM(nn.Module):
         self,
         hidden_size=256,
         num_layers=1,
-        dropout=0.3
+        dropout=0.3,
+        resnet_checkpoint=None
     ):
         super().__init__()
 
@@ -21,6 +22,20 @@ class TemporalResNetLSTM(nn.Module):
         self.resnet = resnet18(
             weights=ResNet18_Weights.DEFAULT
         )
+
+        if resnet_checkpoint and torch.cuda.is_available():
+            try:
+                ckpt = torch.load(resnet_checkpoint, map_location="cpu")
+                state = ckpt.get("model_state_dict", ckpt)
+                cleaned = {
+                    k.replace("model.", ""): v
+                    for k, v in state.items()
+                    if not k.startswith("fc.") and not k.startswith("model.fc.")
+                }
+                self.resnet.load_state_dict(cleaned, strict=False)
+                print(f"[TemporalResNetLSTM] Loaded fine-tuned visual backbone weights from {resnet_checkpoint}")
+            except Exception as e:
+                print(f"[TemporalResNetLSTM] Note: Could not load {resnet_checkpoint}: {e}")
 
         # Remove final classification layer.
         # ResNet18 output becomes 512-dimensional.

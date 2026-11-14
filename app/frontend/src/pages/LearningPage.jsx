@@ -3,34 +3,52 @@ import "./LearningPage.css"
 
 const questions = [
   {
-    question: "Which signal can help detect an audio deepfake?",
+    category: "Spatial Artifacts",
+    question: "What visual artifact is commonly found around the boundary of a face-swap deepfake?",
     options: [
-      "Audio characteristics",
-      "File name only",
-      "Video resolution only",
-      "File size only"
+      "Blending seams and inconsistent skin color gradients",
+      "Low network audio bitrate",
+      "Higher video file frame rate",
+      "Loss of video audio channels"
     ],
-    answer: "Audio characteristics"
+    answer: "Blending seams and inconsistent skin color gradients",
+    explanation: "Deepfake models often generate only facial regions; blending algorithms struggle with hair borders and varying skin tones."
   },
   {
-    question: "What can visual analysis examine?",
+    category: "Temporal Dynamics",
+    question: "How does a Temporal BiLSTM model differentiate authentic video from synthetic manipulation?",
     options: [
-      "Face manipulation",
-      "File name",
-      "Folder location",
-      "Internet speed"
+      "By verifying chronological facial continuity and micro-blink patterns across frames",
+      "By analyzing the file creation metadata header",
+      "By checking if the video resolution is 4K",
+      "By measuring internet download speed"
     ],
-    answer: "Face manipulation"
+    answer: "By verifying chronological facial continuity and micro-blink patterns across frames",
+    explanation: "Deepfakes often flicker across frames. Recurrent temporal models detect unnatural variance in landmark distances over time."
   },
   {
-    question: "Why is cross-modal analysis useful?",
+    category: "Neural Architectures",
+    question: "Why is self-attention valuable in temporal deepfake detection?",
     options: [
-      "It compares different media signals",
-      "It changes the file format",
-      "It reduces file size",
-      "It renames the file"
+      "It focuses the model's weights on anomalous transition frames where artifacts flicker",
+      "It compresses the video file size by 50%",
+      "It renders 3D avatars directly in real time",
+      "It generates replacement audio tracks"
     ],
-    answer: "It compares different media signals"
+    answer: "It focuses the model's weights on anomalous transition frames where artifacts flicker",
+    explanation: "Attention mechanisms dynamically assign higher weights to key glitch frames, improving classification of subtle manipulations."
+  },
+  {
+    category: "Face Normalization",
+    question: "Why is face-crop normalization critical before passing frames into ResNet18?",
+    options: [
+      "It eliminates background bias and standardizes spatial facial proportions",
+      "It reduces GPU memory usage to zero",
+      "It turns grayscale frames into color",
+      "It automatically enhances video brightness"
+    ],
+    answer: "It eliminates background bias and standardizes spatial facial proportions",
+    explanation: "Cropping to the face prevents the neural network from overfitting to background static or room lighting cues."
   }
 ]
 
@@ -40,15 +58,13 @@ function LearningPage() {
   const [selectedAnswer, setSelectedAnswer] = useState(null)
   const [finished, setFinished] = useState(false)
 
-  const question = questions[currentQuestion]
+  const q = questions[currentQuestion]
 
   const handleAnswer = (answer) => {
     if (selectedAnswer) return
-
     setSelectedAnswer(answer)
-
-    if (answer === question.answer) {
-      setScore((previous) => previous + 1)
+    if (answer === q.answer) {
+      setScore((prev) => prev + 1)
     }
   }
 
@@ -57,8 +73,7 @@ function LearningPage() {
       setFinished(true)
       return
     }
-
-    setCurrentQuestion((previous) => previous + 1)
+    setCurrentQuestion((prev) => prev + 1)
     setSelectedAnswer(null)
   }
 
@@ -69,105 +84,111 @@ function LearningPage() {
     setFinished(false)
   }
 
+  const progressPercent = Math.round(((currentQuestion + (selectedAnswer ? 1 : 0)) / questions.length) * 100)
+
   return (
     <div className="learning-page">
-      <div className="learning-container">
-
-        <h1 className="learning-title">
-          Adaptive Learning
-        </h1>
-
+      <div className="learning-header">
+        <div className="page-tag">Educational Sandbox</div>
+        <h1 className="learning-title">Deepfake Forensics & Verification Academy</h1>
         <p className="learning-description">
-          Learn how to identify manipulated media using AI
-          detection evidence.
+          Master the foundational concepts behind spatial CNNs, temporal sequence modeling, and synthetic artifact recognition.
         </p>
+      </div>
 
-        <div className="lesson-card">
-          <h2>Understanding Deepfakes</h2>
-
-          <p>
-            Deepfakes can manipulate faces, voices, or both.
-            Detection systems can examine visual, audio,
-            temporal, and cross-modal signals.
-          </p>
-        </div>
-
+      {!finished ? (
         <div className="quiz-card">
+          <div className="quiz-top">
+            <span className="quiz-category font-mono">{q.category}</span>
+            <span className="quiz-step font-mono">
+              Question {currentQuestion + 1} of {questions.length}
+            </span>
+          </div>
 
-          {!finished ? (
-            <>
-              <div className="quiz-header">
-                <span className="quiz-progress">
-                  Question {currentQuestion + 1} of {questions.length}
-                </span>
+          <div className="quiz-progress-bar">
+            <div
+              className="quiz-progress-fill"
+              style={{ width: `${progressPercent}%` }}
+            ></div>
+          </div>
 
-                <span className="quiz-score">
-                  Score: {score}
-                </span>
-              </div>
+          <h2 className="quiz-question-text">{q.question}</h2>
 
-              <h2>Quick Quiz</h2>
+          <div className="quiz-options-list">
+            {q.options.map((option, idx) => {
+              let optionClass = ""
+              if (selectedAnswer) {
+                if (option === q.answer) {
+                  optionClass = "correct"
+                } else if (option === selectedAnswer) {
+                  optionClass = "incorrect"
+                }
+              }
 
-              <p className="quiz-question">
-                {question.question}
-              </p>
+              return (
+                <button
+                  key={idx}
+                  className={`quiz-option-btn ${optionClass} ${selectedAnswer === option ? "selected" : ""}`}
+                  onClick={() => handleAnswer(option)}
+                  disabled={selectedAnswer !== null}
+                >
+                  <span className="option-marker font-mono">
+                    {String.fromCharCode(65 + idx)}
+                  </span>
+                  <span className="option-text">{option}</span>
+                  {selectedAnswer && option === q.answer && (
+                    <span className="result-indicator">✓</span>
+                  )}
+                  {selectedAnswer && option === selectedAnswer && option !== q.answer && (
+                    <span className="result-indicator">✕</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
 
-              <div className="quiz-options">
-                {question.options.map((option) => (
-                  <button
-                    key={option}
-                    className={`quiz-option ${
-                      selectedAnswer === option ? "selected" : ""
-                    }`}
-                    onClick={() => handleAnswer(option)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-
-              {selectedAnswer && (
-                <>
-                  <div className="quiz-feedback">
-                    {selectedAnswer === question.answer
-                      ? "Correct! 🎉"
-                      : `Incorrect. Correct answer: ${question.answer}`}
-                  </div>
-
-                  <button
-                    className="quiz-next"
-                    onClick={nextQuestion}
-                  >
-                    {currentQuestion === questions.length - 1
-                      ? "Finish Quiz"
-                      : "Next Question"}
-                  </button>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="quiz-finished">
-              <h2>Quiz Complete 🎉</h2>
-
-              <p>
-                Your score:{" "}
-                <strong>
-                  {score} / {questions.length}
-                </strong>
-              </p>
-
-              <button
-                className="quiz-next"
-                onClick={restartQuiz}
-              >
-                Try Again
-              </button>
+          {selectedAnswer && (
+            <div className="explanation-box">
+              <span className="explanation-title">Forensic Note:</span>
+              <p>{q.explanation}</p>
             </div>
           )}
 
+          <div className="quiz-footer">
+            <span className="current-score font-mono">
+              Current Score: {score} / {questions.length}
+            </span>
+            <button
+              className="btn-next"
+              onClick={nextQuestion}
+              disabled={!selectedAnswer}
+            >
+              {currentQuestion === questions.length - 1 ? "Complete Quiz" : "Next Question →"}
+            </button>
+          </div>
         </div>
+      ) : (
+        <div className="quiz-finished-card">
+          <div className="finish-badge">🎓</div>
+          <h2>Academy Module Completed</h2>
+          <p className="finish-sub">
+            You scored <span className="font-mono finish-score">{score}</span> out of <span className="font-mono finish-score">{questions.length}</span> (
+            {Math.round((score / questions.length) * 100)}%)
+          </p>
 
-      </div>
+          <p className="finish-desc">
+            {score === questions.length
+              ? "Exemplary performance! You possess comprehensive knowledge of spatial artifacting and temporal deepfake forensics."
+              : "Solid attempt. Review spatial blending edges and LSTM coherence to sharpen your forensic detection skills."}
+          </p>
+
+          <div className="finish-actions">
+            <button className="btn-secondary" onClick={restartQuiz}>
+              Retake Forensic Quiz
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
